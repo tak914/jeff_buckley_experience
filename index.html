@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Jeff Buckley Albums</title>
+    <style>
+        body { 
+            background-color: #000; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: visible;
+        }
+
+        #albums-selector {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .album-option {
+            cursor: pointer;
+            text-align: center;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .album-option:hover {
+            opacity: 1;
+        }
+
+        .album-option img {
+            width: 150px;
+            height: auto;
+            border-radius: 4px;
+        }
+
+        .album-option p {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .album-container {
+            position: relative;
+            max-width: 850px;
+            width: 95%;
+        }
+
+        .hidden { display: none !important; }
+
+        #inside-view {
+            position: relative;
+        }
+
+        #background-img { 
+            width: 100%; 
+            height: auto; 
+            display: block; 
+        }
+
+        #spinning-cd {
+            position: absolute;
+            top: 0.0%; 
+            left: 53.3%;
+            width: 44.5%;
+            height: auto;
+            z-index: 5;
+            pointer-events: none;
+            transform-origin: center;
+        }
+
+        /* ESTILOS COMUNES PARA AMBAS LISTAS DE CANCIONES */
+        #tracklist,
+        #tracklist-sketches {
+            position: absolute;
+            top: 6%;
+            left: 0.6%;
+            width: 41%;
+            max-height: 73%;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding-left: 15px;
+            padding-right: 10px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 10;
+
+            -webkit-mask-image: linear-gradient(to bottom,
+                transparent 0%,
+                black 10%,
+                black 90%,
+                transparent 100%
+            );
+            mask-image: linear-gradient(to bottom,
+                transparent 0%,
+                black 10%,
+                black 90%,
+                transparent 100%
+            );
+
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.12) transparent;
+        }
+
+        #tracklist::-webkit-scrollbar,
+        #tracklist-sketches::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        #tracklist::-webkit-scrollbar-thumb,
+        #tracklist-sketches::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            backdrop-filter: blur(20px);
+        }
+
+        #tracklist::-webkit-scrollbar-thumb:hover,
+        #tracklist-sketches::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .track-item {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 1.0rem;
+            margin: 6px 0;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            transition: all 0.3s;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            width: 100%;
+            text-align: left;
+            padding: 4px 0;
+        }
+
+        .track-item:hover {
+            color: #fff;
+            transform: translateX(4px);
+        }
+
+        .active-track { 
+            color: #fff !important; 
+            font-weight: bold; 
+        }
+
+        /* PORTADA REDUCIDA */
+        #cover-view {
+            cursor: pointer;
+            transform: scale(0.25);
+            transform-origin: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-150%, -85%) scale(0.50);
+            width: auto;
+            height: auto;
+        }
+
+        #info-bar {
+            position: absolute;
+            bottom: -30px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: #525151;
+        }
+
+        #now-playing {
+            position: absolute;
+            bottom: -50px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: #444;
+        }
+
+        /* Aseguramos que ahora reproduciendo de sketches sea idéntico */
+        #now-playing-sketches {
+            position: absolute;
+            bottom: -50px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            letter-spacing: 4px;
+            color: #444;
+        }
+
+        /* REPRODUCTOR FIJO - POSICIÓN AJUSTADA - ESTILO IDÉNTICO PARA AMBOS ÁLBUMES */
+        #player-controls,
+        #player-controls-sketches {
+            position: absolute;
+            bottom: -75px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 80%;
+            max-width: 600px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 30;
+        }
+
+        #player-controls.visible,
+        #player-controls-sketches.visible {
+            opacity: 1;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .control-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            color: #ffcc00;
+        }
+
+        #current-time, #total-time,
+        #current-time-sketches, #total-time-sketches {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            min-width: 20px;
+            text-align: center;
+        }
+
+        #progress-bar,
+        #progress-bar-sketches {
+            flex: 1;
+            height: 5px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+            outline: none;
+            min-width: 0;
+        }
+
+        #progress-bar::-webkit-slider-thumb,
+        #progress-bar-sketches::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+
+        /* Estilo común para ambos botones de cerrar */
+        .close-btn-common {
+            position: absolute;
+            top: -37px;
+            right: 0px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 35;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+        }
+
+        .close-btn-common:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* ESTILOS PARA SKETCHES */
+        #background-img-sketches {
+            width: 100%; 
+            height: auto; 
+            display: block;
+        }
+
+        
+
+        #cd1-sketches {
+            position: absolute;
+            top: 1.2%; /* Ajusta este valor */
+            left: 51.7%; /* Ajusta este valor */
+            width: 43.5%; /* Ajusta este valor */
+            height: auto; /* Mantiene proporción */
+            z-index: 5;
+            pointer-events: none;
+            transform-origin: center; /* Importante para la rotación */
+        }
+
+        #cd2-sketches {
+            position: absolute;
+            top: -3.9%; /* Ajusta este valor */
+            left: 49.2%; /* Ajusta este valor */
+            width: 48.5%; /* Ajusta este valor */
+            height: auto; /* Mantiene proporción */
+            z-index: 5;
+            pointer-events: none;
+            transform-origin: center; /* Importante para la rotación */
+        }
+
+
+
+
+        #change-disk-btn {
+            position: absolute;
+            top: 345px;
+            left: 145px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 35;
+            backdrop-filter: blur(4px);
+            transition: background 0.2s;
+        }
+
+        #change-disk-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+    </style>
+</head>
+<body>
+
+<!-- Selector de Álbumes Inicial -->
+<div id="albums-selector">
+    <div class="album-option" onclick="selectAlbum('grace')">
+        <img src="https://i.postimg.cc/pVhNnFWh/b9c826bf4d8da57694c54d7403d5cb18.jpg" alt="Grace">
+        <p>GRACE</p>
+    </div>
+    <div class="album-option" onclick="selectAlbum('sketches')">
+        <img src="https://i.postimg.cc/3JmcMQrN/portada.jpg" alt="Sketches for My Sweetheart the Drunk">
+        <p>SKETCHES FOR MY SWEETHEART THE DRUNK</p>
+    </div>
+</div>
+
+<!-- ÁLBUM: GRACE -->
+<div id="album-container-grace" class="album-container hidden">
+    <div id="cover-view" onclick="openAlbum('grace')">
+        <img src="https://i.postimg.cc/pVhNnFWh/b9c826bf4d8da57694c54d7403d5cb18.jpg" style="width:100%; display:block;">
+    </div>
+
+    <div id="inside-view" class="hidden">
+        <img id="background-img" src="https://i.postimg.cc/C1r8q24f/2-sin-titulo-20260109161411.png">
+        <img id="spinning-cd" src="https://i.postimg.cc/wBp4fwsZ/2-sin-titulo-20260109170215.png" alt="CD Disc">
+
+        <div id="tracklist">
+            <button class="track-item" onclick="playTrack('grace', 0, this)">Mojo Pin</button>
+            <button class="track-item" onclick="playTrack('grace', 1, this)">Grace</button>
+            <button class="track-item" onclick="playTrack('grace', 2, this)">Last Goodbye</button>
+            <button class="track-item" onclick="playTrack('grace', 3, this)">Lilac Wine</button>
+            <button class="track-item" onclick="playTrack('grace', 4, this)">So Real</button>
+            <button class="track-item" onclick="playTrack('grace', 5, this)">Hallelujah</button>
+            <button class="track-item" onclick="playTrack('grace', 6, this)">Lover, You Should've Come Over</button>
+            <button class="track-item" onclick="playTrack('grace', 7, this)">Corpus Christi Carol</button>
+            <button class="track-item" onclick="playTrack('grace', 8, this)">Eternal Life</button>
+            <button class="track-item" onclick="playTrack('grace', 9, this)">Dream Brother</button>
+            <button class="track-item" onclick="playTrack('grace', 10, this)">Forget Her</button>
+        </div>
+
+        <!-- Botón de cierre -->
+        <button id="close-box-btn" class="close-btn-common">X</button>
+    </div>
+
+    <div id="info-bar">JEFF BUCKLEY — GRACE</div>
+    <div id="now-playing">...</div>
+    
+    <!-- REPRODUCTOR CON TIEMPO ACTUAL Y TOTAL -->
+    <div id="player-controls" class="hidden">
+        <button class="control-btn" id="shuffle-btn">🔀</button>
+        <button class="control-btn" id="pause-btn">⏸️</button>
+        <span id="current-time">0:00</span>
+        <input type="range" id="progress-bar" min="0" max="100" value="0" step="0.1">
+        <span id="total-time">0:00</span>
+        <button class="control-btn" id="prev-btn">⏮️</button>
+        <button class="control-btn" id="next-btn">⏭️</button>
+    </div>
+</div>
+
+<!-- ÁLBUM: SKETCHES FOR MY SWEETHEART THE DRUNK -->
+<div id="album-container-sketches" class="album-container hidden">
+    <div id="cover-view-sketches" onclick="openAlbum('sketches')" class="hidden">
+        <img src="https://i.postimg.cc/3JmcMQrN/portada.jpg" style="width:100%; display:block;">
+    </div>
+
+    <div id="inside-view-sketches" class="hidden">
+        <img id="background-img-sketches" src="https://i.postimg.cc/bwPFpVdM/caja-interior.png">
+
+        <!-- CDs -->
+        <img id="cd1-sketches" class="disk-image-sketches" src="https://i.postimg.cc/Xv7HyZf5/sket1.png" alt="CD 1">
+        <img id="cd2-sketches" class="disk-image-sketches hidden" src="https://i.postimg.cc/6Q5jG7rp/sket2.png" alt="CD 2">
+
+        <!-- Botón de cambio de disco -->
+        <button id="change-disk-btn">CHANGE DISK</button>
+
+        <div id="tracklist-sketches">
+            <!-- Se llenará dinámicamente -->
+        </div>
+
+        <!-- Botón de cierre -->
+        <button id="close-box-btn-sketches" class="close-btn-common">X</button>
+    </div>
+
+    <div id="info-bar-sketches">JEFF BUCKLEY — SKETCHES FOR MY SWEETHEART THE DRUNK</div>
+    <div id="now-playing-sketches">...</div>
+    
+    <!-- REPRODUCTOR CON TIEMPO ACTUAL Y TOTAL -->
+    <div id="player-controls-sketches" class="hidden">
+        <button class="control-btn" id="shuffle-btn-sketches">🔀</button>
+        <button class="control-btn" id="pause-btn-sketches">⏸️</button>
+        <span id="current-time-sketches">0:00</span>
+        <input type="range" id="progress-bar-sketches" min="0" max="100" value="0" step="0.1">
+        <span id="total-time-sketches">0:00</span>
+        <button class="control-btn" id="prev-btn-sketches">⏮️</button>
+        <button class="control-btn" id="next-btn-sketches">⏭️</button>
+    </div>
+</div>
+
+<audio id="player"></audio>
+
+<script>
+    // Estado global
+    let currentAlbum = null; // 'grace' o 'sketches'
+    let currentDisk = 1; // Para sketches - disco mostrado en la interfaz
+    let currentDiskOfPlayingTrack = 1; // Para sketches - disco al que pertenece la canción actual
+    let isPlaying = false;
+    let isShuffle = false;
+    let currentTrackIndex = -1;
+    // Estados de rotación por disco (solo para sketches)
+    let rotationState = {
+        1: { angle: 0, speed: 0 }, // Disco 1
+        2: { angle: 0, speed: 0 }  // Disco 2
+    };
+    // Para grace, usamos un estado temporal o simplemente el primer disco si se mezcla
+    // Mantenemos una referencia al disco que está girando actualmente
+    let currentRotatingDisk = 1; // Se actualizará dinámicamente
+    let animationId = null;
+    const player = document.getElementById('player');
+
+    const TARGET_SPEED = 3.0;
+    const DECELERATION = 0.1;
+
+    // Elementos por álbum
+    const albumElements = {
+        grace: {
+            container: document.getElementById('album-container-grace'),
+            coverView: document.getElementById('cover-view'),
+            insideView: document.getElementById('inside-view'),
+            tracklist: document.getElementById('tracklist'),
+            info: document.getElementById('info-bar'),
+            nowPlaying: document.getElementById('now-playing'),
+            playerControls: document.getElementById('player-controls'),
+            pauseBtn: document.getElementById('pause-btn'),
+            prevBtn: document.getElementById('prev-btn'),
+            nextBtn: document.getElementById('next-btn'),
+            shuffleBtn: document.getElementById('shuffle-btn'),
+            progressBar: document.getElementById('progress-bar'),
+            currentTimeSpan: document.getElementById('current-time'),
+            totalTimeSpan: document.getElementById('total-time'),
+            closeBoxBtn: document.getElementById('close-box-btn')
+        },
+        sketches: {
+            container: document.getElementById('album-container-sketches'),
+            coverView: document.getElementById('cover-view-sketches'),
+            insideView: document.getElementById('inside-view-sketches'),
+            cd1: document.getElementById('cd1-sketches'),
+            cd2: document.getElementById('cd2-sketches'),
+            tracklist: document.getElementById('tracklist-sketches'),
+            info: document.getElementById('info-bar-sketches'),
+            nowPlaying: document.getElementById('now-playing-sketches'),
+            playerControls: document.getElementById('player-controls-sketches'),
+            pauseBtn: document.getElementById('pause-btn-sketches'),
+            prevBtn: document.getElementById('prev-btn-sketches'),
+            nextBtn: document.getElementById('next-btn-sketches'),
+            shuffleBtn: document.getElementById('shuffle-btn-sketches'),
+            progressBar: document.getElementById('progress-bar-sketches'),
+            currentTimeSpan: document.getElementById('current-time-sketches'),
+            totalTimeSpan: document.getElementById('total-time-sketches'),
+            closeBoxBtn: document.getElementById('close-box-btn-sketches'),
+            changeDiskBtn: document.getElementById('change-disk-btn')
+        }
+    };
+
+    // Canciones por álbum
+    const albumTracks = {
+        grace: [
+            { file: 'mojo_pin.mp3', name: 'Mojo Pin' },
+            { file: 'grace.mp3', name: 'Grace' },
+            { file: 'last_goodbye.mp3', name: 'Last Goodbye' },
+            { file: 'lilac_wine.mp3', name: 'Lilac Wine' },
+            { file: 'so_real.mp3', name: 'So Real' },
+            { file: 'hallelujah.mp3', name: 'Hallelujah' },
+            { file: 'lover_you_shouldve_come_over.mp3', name: "Lover, You Should've Come Over" },
+            { file: 'corpus_christi_carol.mp3', name: 'Corpus Christi Carol' },
+            { file: 'eternal_life.mp3', name: 'Eternal Life' },
+            { file: 'dream_brother.mp3', name: 'Dream Brother' },
+            { file: 'forget_her.mp3', name: 'Forget Her' }
+        ],
+        sketches: {
+            1: [
+                { file: 'the_sky_is_a_landfield.mp3', name: 'The Sky Is A Landfield' },
+                { file: 'everybody_heres_wants_you.mp3', name: 'Everybody Heres Wants You' },
+                { file: 'opened_once.mp3', name: 'Opened Once' },
+                { file: 'nightmares_by_the_sea.mp3', name: 'Nightmares By The Sea' },
+                { file: 'yard_of_blonde_girls.mp3', name: 'Yard Of Blonde Girls' },
+                { file: 'witches_rave.mp3', name: 'Witches Rave' },
+                { file: 'new_years_prayer.mp3', name: 'New Years Prayer' },
+                { file: 'morning_theft.mp3', name: 'Morning Theft' },
+                { file: 'vancouver.mp3', name: 'Vancouver' },
+                { file: 'you_&I.mp3', name: 'You & I' }
+            ],
+            2: [
+                { file: 'nightmares_by_the_sea_original_mix.mp3', name: 'Nightmares By The Sea - Original Mix' },
+                { file: 'new_years_prayer_original_mix.mp3', name: 'New Years Prayer - Original Mix' },
+                { file: 'havent_you_heard.mp3', name: 'Havent You Heard' },
+                { file: 'i_know_we_could_be_so_happy_baby.mp3', name: 'I Know We Could Be So Happy Baby (If We Wanted To Be)' },
+                { file: 'murder_suicide_meteor_slave.mp3', name: 'Murder Suicide Meteor Slave' },
+                { file: 'back_in_NYC.mp3', name: 'Back In N.Y.C' },
+                { file: 'demon_john.mp3', name: 'Demon John' },
+                { file: 'your_flesh_is_so_nice.mp3', name: 'Your Flesh Is So Nice' },
+                { file: 'jewel_box.mp3', name: 'Jewel Box' },
+                { file: 'satisfied_mind.mp3', name: 'Satisfied Mind - Live At Wfmu, East Orange, NJ-Oct 1992' },
+                { file: 'gunshot_glitter.mp3', name: 'Gunshot Glitter' },
+                { file: 'thousand_fold.mp3', name: 'Thousand Fold' }
+            ]
+        }
+    };
+
+    // --- FUNCIONES DE ANIMACIÓN ---
+    function animateCD() {
+        // Determinar qué disco debe girar basado en la canción en reproducción
+        if (isPlaying && currentAlbum === 'sketches') {
+            currentRotatingDisk = currentDiskOfPlayingTrack;
+        } else if (isPlaying && currentAlbum === 'grace') {
+             // Si está sonando grace, podemos usar un estado fijo o uno genérico, o asignar a disco 1 por defecto
+             // Por simplicidad, asignamos el estado de rotación de grace al disco 1
+             currentRotatingDisk = 1;
+        } else {
+             // Si no se reproduce nada, el disco que se mostraba al finalizar mantiene su ángulo y velocidad
+             // Pero la animación puede continuar para que se frene gradualmente
+             // No cambiamos currentRotatingDisk aquí, seguimos con el último disco que giraba
+             // Si queremos que se detenga visualmente, podríamos condicionar la actualización del ángulo
+             // Pero para la sensación de "frenado", es mejor dejar que se actualice.
+             // La clave es que si no se reproduce nada, no se acelera.
+        }
+
+        // Obtener el estado del disco que debe girar
+        let state = rotationState[currentRotatingDisk];
+
+        if (isPlaying) {
+            // Acelerar o mantener velocidad objetivo
+            if (state.speed < TARGET_SPEED) {
+                state.speed = Math.min(TARGET_SPEED, state.speed + 0.03);
+            }
+            state.angle += state.speed;
+        } else if (state.speed > 0) {
+            // Frenar gradualmente
+            state.speed = Math.max(0, state.speed - DECELERATION);
+            state.angle += state.speed;
+        }
+        // Si no está reproduciendo y la velocidad ya es 0, el ángulo se mantiene quieto
+
+        // Aplicar la rotación al elemento correspondiente
+        let cdElement;
+        if (currentAlbum === 'grace') {
+            cdElement = document.getElementById('spinning-cd');
+        } else { // sketches
+            cdElement = currentRotatingDisk === 1 ? albumElements.sketches.cd1 : albumElements.sketches.cd2;
+        }
+        if (cdElement) {
+            cdElement.style.transform = `rotate(${state.angle}deg)`;
+        }
+
+        animationId = requestAnimationFrame(animateCD);
+    }
+
+    animationId = requestAnimationFrame(animateCD);
+
+    // --- NAVEGACIÓN ENTRE ÁLBUMES ---
+    function selectAlbum(albumName) {
+        document.getElementById('albums-selector').classList.add('hidden');
+        Object.values(albumElements).forEach(el => el.container.classList.add('hidden'));
+        openAlbum(albumName);
+    }
+
+    function openAlbum(albumName) {
+        currentAlbum = albumName;
+        // CORREGIDO: Reiniciar disco de reproducción al abrir sketches
+        if (albumName === 'sketches') {
+            currentDiskOfPlayingTrack = 1;
+            // CORREGIDO: Reiniciar ángulos de rotación al abrir sketches
+            rotationState[1].angle = 0;
+            rotationState[1].speed = 0;
+            rotationState[2].angle = 0;
+            rotationState[2].speed = 0;
+            currentRotatingDisk = 1; // Reiniciar disco girando
+        }
+        const elements = albumElements[albumName];
+
+        // Ocultar selector y otros álbumes
+        document.getElementById('albums-selector').classList.add('hidden');
+        Object.entries(albumElements).forEach(([key, el]) => {
+            if (key !== albumName) el.container.classList.add('hidden');
+        });
+
+        // Mostrar contenedor del álbum
+        elements.container.classList.remove('hidden');
+
+        if (albumName === 'grace') {
+            elements.coverView.classList.add('hidden');
+            elements.insideView.classList.remove('hidden');
+            elements.info.classList.add('hidden');
+        } else { // sketches
+            // Mostrar disco 1 por defecto
+            currentDisk = 1;
+            elements.cd1.classList.remove('hidden');
+            elements.cd2.classList.add('hidden');
+            elements.changeDiskBtn.style.display = 'block';
+            updateSketchesTracklist();
+
+            elements.coverView.classList.add('hidden');
+            elements.insideView.classList.remove('hidden');
+            elements.info.classList.add('hidden');
+        }
+
+        // Reiniciar estado de reproducción
+        player.pause();
+        isPlaying = false;
+        currentTrackIndex = -1;
+        elements.pauseBtn.textContent = '▶️';
+        elements.playerControls.classList.remove('visible');
+        elements.playerControls.classList.add('hidden');
+        elements.nowPlaying.textContent = '';
+        updateActiveTrack(-1);
+    }
+
+    // --- CIERRE ---
+    function closeAlbum() {
+        if (!currentAlbum) return;
+        const elements = albumElements[currentAlbum];
+
+        // Detener reproducción
+        player.pause();
+        isPlaying = false;
+        elements.pauseBtn.textContent = '▶️';
+        elements.playerControls.classList.remove('visible');
+        elements.playerControls.classList.add('hidden');
+        elements.nowPlaying.textContent = '';
+        currentTrackIndex = -1;
+        updateActiveTrack(-1);
+
+        // Ocultar vista interior y portada del álbum
+        elements.insideView.classList.add('hidden');
+        elements.coverView.classList.add('hidden'); // Asegurar que la portada del álbum esté oculta
+        elements.info.classList.remove('hidden'); // Mostrar info de nuevo si corresponde
+
+        // Ocultar el contenedor del álbum activo
+        elements.container.classList.add('hidden');
+
+        // Mostrar selector
+        document.getElementById('albums-selector').classList.remove('hidden');
+
+        // Resetear estado
+        currentAlbum = null;
+        currentDisk = 1;
+        // CORREGIDO: Reiniciar también el disco de reproducción y los ángulos
+        currentDiskOfPlayingTrack = 1;
+        rotationState[1].angle = 0;
+        rotationState[1].speed = 0;
+        rotationState[2].angle = 0;
+        rotationState[2].speed = 0;
+        currentRotatingDisk = 1; // Reiniciar disco girando
+    }
+
+    // --- FUNCIONALIDAD DE SKETCHES ---
+    function changeDisk() {
+        if (currentAlbum !== 'sketches') return;
+        const elements = albumElements.sketches;
+        const oldDisk = currentDisk;
+        const newDisk = oldDisk === 1 ? 2 : 1;
+
+        // Ocultar disco actual, mostrar nuevo (esto cambia la interfaz)
+        if (oldDisk === 1) {
+            elements.cd1.classList.add('hidden');
+            elements.cd2.classList.remove('hidden');
+        } else {
+            elements.cd2.classList.add('hidden');
+            elements.cd1.classList.remove('hidden');
+        }
+        currentDisk = newDisk; // Actualiza el disco mostrado en la interfaz
+
+        // Actualizar lista de canciones
+        updateSketchesTracklist();
+
+        // Opcional: Reiniciar el ángulo del nuevo disco a 0 al cambiar la vista
+        // rotationState[newDisk].angle = 0; // Descomentar si se desea resetear vista
+        // rotationState[newDisk].speed = 0; // Descomentar si se desea resetear vista
+
+
+        // CORREGIDO: NO se cambia currentDiskOfPlayingTrack
+        // El disco que gira sigue siendo el de la canción en reproducción
+        updateActiveTrack(-1); // Desmarcar botón activo al cambiar de disco
+    }
+
+    function updateSketchesTracklist() {
+        const elements = albumElements.sketches;
+        const tracks = albumTracks.sketches[currentDisk];
+        const list = elements.tracklist;
+        list.innerHTML = '';
+        tracks.forEach((track, index) => {
+            const button = document.createElement('button');
+            button.className = 'track-item';
+            button.textContent = track.name;
+            button.onclick = () => playTrack('sketches', index, button);
+            list.appendChild(button);
+        });
+    }
+
+    // --- ACTUALIZACIÓN DE INTERFAZ ---
+    function updateActiveTrack(index) {
+        // Limpiar todos
+        document.querySelectorAll('.track-item.active-track').forEach(b => b.classList.remove('active-track'));
+        // Marcar el actual si es válido
+        if (index >= 0 && currentAlbum) {
+            const elements = albumElements[currentAlbum];
+            const buttons = elements.tracklist.querySelectorAll('.track-item');
+            if (buttons[index]) {
+                buttons[index].classList.add('active-track');
+            }
+        }
+    }
+
+    // --- REPRODUCCIÓN ---
+    function playTrack(albumName, index, btnElement) {
+        if (currentAlbum !== albumName) return; // Solo reproducir si es el álbum activo
+        const elements = albumElements[albumName];
+        let tracks = albumTracks[albumName];
+        let diskOfThisTrack = null;
+        if (albumName === 'sketches') {
+            // En sketches, al reproducir una canción, asumimos que proviene del disco cuya lista se está mostrando
+            diskOfThisTrack = currentDisk;
+            tracks = albumTracks.sketches[currentDisk];
+        }
+
+        if (index < 0 || index >= tracks.length) return;
+
+        currentTrackIndex = index;
+        const track = tracks[index];
+
+        player.src = track.file;
+        player.play().then(() => {
+            isPlaying = true;
+            // CORREGIDO: Actualizar el disco de la canción en reproducción para sketches
+            if (albumName === 'sketches' && diskOfThisTrack !== null) {
+                currentDiskOfPlayingTrack = diskOfThisTrack;
+            }
+            elements.pauseBtn.textContent = '⏸️';
+            elements.playerControls.classList.remove('hidden');
+            elements.playerControls.classList.add('visible');
+            elements.nowPlaying.textContent = "AHORA REPRODUCIENDO: " + track.name.toUpperCase();
+            if (btnElement) updateActiveTrack(index);
+        }).catch(e => console.error("Error al reproducir:", e));
+    }
+
+    function playNext() {
+        if (!currentAlbum || currentTrackIndex === -1) return;
+        let tracks = albumTracks[currentAlbum];
+        if (currentAlbum === 'sketches') {
+            tracks = albumTracks.sketches[currentDisk];
+        }
+
+        let nextIndex;
+        if (isShuffle) {
+            do {
+                nextIndex = Math.floor(Math.random() * tracks.length);
+            } while (nextIndex === currentTrackIndex && tracks.length > 1);
+        } else {
+            nextIndex = (currentTrackIndex + 1) % tracks.length;
+        }
+        playTrack(currentAlbum, nextIndex, null);
+    }
+
+    function playPrev() {
+        if (!currentAlbum || currentTrackIndex === -1) return;
+        let tracks = albumTracks[currentAlbum];
+        if (currentAlbum === 'sketches') {
+            tracks = albumTracks.sketches[currentDisk];
+        }
+
+        let prevIndex;
+        if (isShuffle) {
+            do {
+                prevIndex = Math.floor(Math.random() * tracks.length);
+            } while (prevIndex === currentTrackIndex && tracks.length > 1);
+        } else {
+            prevIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length;
+        }
+        playTrack(currentAlbum, prevIndex, null);
+    }
+
+    // --- EVENTOS DEL REPRODUCTOR (CENTRALIZADOS) ---
+    player.addEventListener('timeupdate', () => {
+        if (!currentAlbum || !player.duration) return;
+        const elements = albumElements[currentAlbum];
+        elements.progressBar.value = (player.currentTime / player.duration) * 100;
+        elements.currentTimeSpan.textContent = formatTime(player.currentTime);
+    });
+
+    player.addEventListener('loadedmetadata', () => {
+        if (!currentAlbum) return;
+        const elements = albumElements[currentAlbum];
+        elements.totalTimeSpan.textContent = formatTime(player.duration);
+    });
+
+    player.addEventListener('ended', () => {
+        isPlaying = false;
+        if (currentAlbum) {
+            albumElements[currentAlbum].pauseBtn.textContent = '▶️';
+            setTimeout(playNext, 300);
+        }
+    });
+
+    // --- EVENTOS GLOBALES ---
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && currentAlbum) {
+             closeAlbum();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+            e.preventDefault();
+            if (currentAlbum && currentTrackIndex >= 0) {
+                if (isPlaying) {
+                    player.pause();
+                    isPlaying = false;
+                    albumElements[currentAlbum].pauseBtn.textContent = '▶️';
+                } else {
+                    player.play();
+                    isPlaying = true;
+                    albumElements[currentAlbum].pauseBtn.textContent = '⏸️';
+                }
+            }
+        }
+    });
+
+    // --- REGISTRO DE EVENTOS POR ÁLBUM ---
+    // Grace
+    albumElements.grace.pauseBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            player.pause();
+            isPlaying = false;
+            albumElements.grace.pauseBtn.textContent = '▶️';
+        } else {
+            player.play();
+            isPlaying = true;
+            albumElements.grace.pauseBtn.textContent = '⏸️';
+        }
+    });
+
+    albumElements.grace.nextBtn.addEventListener('click', playNext);
+    albumElements.grace.prevBtn.addEventListener('click', playPrev);
+
+    albumElements.grace.shuffleBtn.addEventListener('click', () => {
+        isShuffle = !isShuffle;
+        albumElements.grace.shuffleBtn.classList.toggle('active', isShuffle);
+    });
+
+    albumElements.grace.closeBoxBtn.addEventListener('click', closeAlbum);
+
+    albumElements.grace.progressBar.addEventListener('input', () => {
+        if (player.duration) {
+            player.currentTime = (albumElements.grace.progressBar.value / 100) * player.duration;
+        }
+    });
+
+    albumElements.grace.progressBar.addEventListener('mouseup', () => {
+        albumElements.grace.progressBar.blur();
+    });
+
+    // Sketches
+    albumElements.sketches.pauseBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            player.pause();
+            isPlaying = false;
+            albumElements.sketches.pauseBtn.textContent = '▶️';
+        } else {
+            player.play();
+            isPlaying = true;
+            albumElements.sketches.pauseBtn.textContent = '⏸️';
+        }
+    });
+
+    albumElements.sketches.nextBtn.addEventListener('click', playNext);
+    albumElements.sketches.prevBtn.addEventListener('click', playPrev);
+
+    albumElements.sketches.shuffleBtn.addEventListener('click', () => {
+        isShuffle = !isShuffle;
+        albumElements.sketches.shuffleBtn.classList.toggle('active', isShuffle);
+    });
+
+    albumElements.sketches.closeBoxBtn.addEventListener('click', closeAlbum);
+    albumElements.sketches.changeDiskBtn.addEventListener('click', changeDisk);
+
+    albumElements.sketches.progressBar.addEventListener('input', () => {
+        if (player.duration) {
+            player.currentTime = (albumElements.sketches.progressBar.value / 100) * player.duration;
+        }
+    });
+
+    albumElements.sketches.progressBar.addEventListener('mouseup', () => {
+        albumElements.sketches.progressBar.blur();
+    });
+
+    // --- FORMATEADOR DE TIEMPO ---
+    function formatTime(seconds) {
+        if (isNaN(seconds) || seconds < 0) return '0:00';
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+
+    // Mostrar selector inicial
+    document.getElementById('albums-selector').classList.remove('hidden');
+</script>
+
+</body>
+</html>
